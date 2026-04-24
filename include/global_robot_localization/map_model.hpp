@@ -1,0 +1,59 @@
+#ifndef GLOBAL_ROBOT_LOCALIZATION__MAP_MODEL_HPP_
+#define GLOBAL_ROBOT_LOCALIZATION__MAP_MODEL_HPP_
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <opencv2/core.hpp>
+
+namespace global_robot_localization
+{
+
+struct MapBuildOptions
+{
+  int occupied_threshold{50};
+  bool unknown_is_occupied{true};
+};
+
+class MapModel
+{
+public:
+  bool update(const nav_msgs::msg::OccupancyGrid & map, const MapBuildOptions & options);
+
+  bool ready() const {return ready_;}
+  const std::string & frame_id() const {return frame_id_;}
+  double resolution() const {return resolution_;}
+  double origin_x() const {return origin_x_;}
+  double origin_y() const {return origin_y_;}
+  double origin_yaw() const {return origin_yaw_;}
+  std::uint32_t width() const {return width_;}
+  std::uint32_t height() const {return height_;}
+
+  bool isFreeCell(std::uint32_t x, std::uint32_t y) const;
+  bool isFreeWorld(double wx, double wy) const;
+  bool worldToGrid(double wx, double wy, double & gx, double & gy) const;
+  void gridCenterToWorld(std::uint32_t gx, std::uint32_t gy, double & wx, double & wy) const;
+  double interpolatedDistance(double wx, double wy, double off_map_distance) const;
+
+private:
+  bool ready_{false};
+  std::string frame_id_{"map"};
+  double resolution_{0.05};
+  double origin_x_{0.0};
+  double origin_y_{0.0};
+  double origin_yaw_{0.0};
+  double origin_cos_{1.0};
+  double origin_sin_{0.0};
+  std::uint32_t width_{0};
+  std::uint32_t height_{0};
+  std::vector<std::int8_t> occupancy_;
+  cv::Mat edt_meters_;
+  int occupied_threshold_{50};
+  bool unknown_is_occupied_{true};
+};
+
+}  // namespace global_robot_localization
+
+#endif  // GLOBAL_ROBOT_LOCALIZATION__MAP_MODEL_HPP_

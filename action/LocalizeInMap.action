@@ -1,0 +1,20 @@
+# Optional per-request overrides. Set num_scans to 0 to use the node parameter.
+uint32 num_scans
+
+# Set to zero to use the node parameter.
+builtin_interfaces/Duration collection_timeout
+
+# If true, suppress the optional one-shot /initialpose publication for this request.
+bool suppress_initialpose
+
+# If true, suppress the optional candidate marker publication for this request.
+bool suppress_markers
+---
+bool success
+string message
+geometry_msgs/PoseWithCovarianceStamped pose
+float64 cost
+uint32 scan_count
+---
+string state
+uint32 collected_scans
