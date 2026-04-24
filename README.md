@@ -46,3 +46,6 @@ Important parameters:
   consistency term. When enabled, poses are penalized if observed clear laser
   rays pass through occupied map cells.
 - `covariance_step_xy`, `covariance_step_yaw_deg`, `covariance_regularization`: finite-difference covariance controls.
+- `sigma_r` : std deviation of radial lidar error (meters)
+- `sigma_theta` : std deviation of angular lidar error (radians)
+- `alpha_m` : scaling multiple to get std deviation of map error from map resolution.
