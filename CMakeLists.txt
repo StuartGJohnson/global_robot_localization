@@ -35,6 +35,7 @@ add_library(${CORE_LIBRARY_TARGET}
   src/global_robot_localization.cpp
   src/localization_search.cpp
   src/map_model.cpp
+  src/sim.cpp
 )
 target_compile_features(${CORE_LIBRARY_TARGET} PUBLIC cxx_std_17)
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
