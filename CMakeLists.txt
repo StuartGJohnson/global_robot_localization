@@ -111,6 +111,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_localization
     tests/test_localization.cpp
+    tests/test_node.cpp
   )
   if(TARGET test_localization)
     target_compile_features(test_localization PUBLIC cxx_std_17)
