@@ -32,6 +32,10 @@ bool MapModel::update(const nav_msgs::msg::OccupancyGrid & map, const MapBuildOp
   origin_sin_ = std::sin(origin_yaw_);
   width_ = map.info.width;
   height_ = map.info.height;
+  edt_padding_cells_ = static_cast<std::uint32_t>(std::max(
+    0.0, std::ceil(options.map_padding_xy / resolution_)));
+  edt_width_ = width_ + 2U * edt_padding_cells_;
+  edt_height_ = height_ + 2U * edt_padding_cells_;
   occupancy_ = map.data;
   occupied_threshold_ = options.occupied_threshold;
   unknown_is_occupied_ = options.unknown_is_occupied;
@@ -46,8 +50,23 @@ bool MapModel::update(const nav_msgs::msg::OccupancyGrid & map, const MapBuildOp
     }
   }
 
+  cv::Mat padded_obstacle_image;
+  if (edt_padding_cells_ > 0U) {
+    cv::copyMakeBorder(
+      obstacle_image,
+      padded_obstacle_image,
+      static_cast<int>(edt_padding_cells_),
+      static_cast<int>(edt_padding_cells_),
+      static_cast<int>(edt_padding_cells_),
+      static_cast<int>(edt_padding_cells_),
+      cv::BORDER_CONSTANT,
+      cv::Scalar(255));
+  } else {
+    padded_obstacle_image = obstacle_image;
+  }
+
   cv::Mat edt_cells;
-  cv::distanceTransform(obstacle_image, edt_cells, cv::DIST_L2, cv::DIST_MASK_PRECISE);
+  cv::distanceTransform(padded_obstacle_image, edt_cells, cv::DIST_L2, cv::DIST_MASK_PRECISE);
   edt_cells.convertTo(edt_meters_, CV_32FC1, resolution_);
   ready_ = true;
   return true;
@@ -78,7 +97,7 @@ bool MapModel::isFreeWorld(double wx, double wy) const
   return isFreeCell(cell_x, cell_y);
 }
 
-bool MapModel::worldToGrid(double wx, double wy, double & gx, double & gy) const
+bool MapModel::worldToGridUnbounded(double wx, double wy, double & gx, double & gy) const
 {
   const double dx = wx - origin_x_;
   const double dy = wy - origin_y_;
@@ -86,6 +105,12 @@ bool MapModel::worldToGrid(double wx, double wy, double & gx, double & gy) const
   const double local_y = -origin_sin_ * dx + origin_cos_ * dy;
   gx = local_x / resolution_ - 0.5;
   gy = local_y / resolution_ - 0.5;
+  return true;
+}
+
+bool MapModel::worldToGrid(double wx, double wy, double & gx, double & gy) const
+{
+  worldToGridUnbounded(wx, wy, gx, gy);
   return gx >= 0.0 && gy >= 0.0 && gx <= static_cast<double>(width_ - 1) &&
          gy <= static_cast<double>(height_ - 1);
 }
@@ -106,16 +131,23 @@ double MapModel::interpolatedDistance(double wx, double wy, double off_map_dista
 
   double gx = 0.0;
   double gy = 0.0;
-  if (!worldToGrid(wx, wy, gx, gy)) {
+  worldToGridUnbounded(wx, wy, gx, gy);
+
+  const double padded_gx = gx + static_cast<double>(edt_padding_cells_);
+  const double padded_gy = gy + static_cast<double>(edt_padding_cells_);
+  if (padded_gx < 0.0 || padded_gy < 0.0 ||
+    padded_gx > static_cast<double>(edt_width_ - 1) ||
+    padded_gy > static_cast<double>(edt_height_ - 1))
+  {
     return off_map_distance;
   }
 
-  const int x0 = static_cast<int>(std::floor(gx));
-  const int y0 = static_cast<int>(std::floor(gy));
-  const int x1 = std::min(x0 + 1, static_cast<int>(width_ - 1));
-  const int y1 = std::min(y0 + 1, static_cast<int>(height_ - 1));
-  const double tx = std::clamp(gx - static_cast<double>(x0), 0.0, 1.0);
-  const double ty = std::clamp(gy - static_cast<double>(y0), 0.0, 1.0);
+  const int x0 = static_cast<int>(std::floor(padded_gx));
+  const int y0 = static_cast<int>(std::floor(padded_gy));
+  const int x1 = std::min(x0 + 1, static_cast<int>(edt_width_ - 1));
+  const int y1 = std::min(y0 + 1, static_cast<int>(edt_height_ - 1));
+  const double tx = std::clamp(padded_gx - static_cast<double>(x0), 0.0, 1.0);
+  const double ty = std::clamp(padded_gy - static_cast<double>(y0), 0.0, 1.0);
 
   const float d00 = edt_meters_.at<float>(y0, x0);
   const float d10 = edt_meters_.at<float>(y0, x1);

@@ -19,6 +19,7 @@ global_robot_localization:
     max_range: 5.5
     scan_stride: 1
     off_map_distance: 3.0
+    map_padding_xy: 1.0
     free_space_weight: 0.4
     free_space_sample_step: 0.2
     min_endpoint_count: 80
@@ -26,4 +27,3 @@ global_robot_localization:
     sigma_r: 0.03
     sigma_theta: 0.005
     alpha_m: 1.0
-

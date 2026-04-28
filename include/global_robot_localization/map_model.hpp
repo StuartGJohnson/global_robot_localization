@@ -27,6 +27,7 @@ struct MapBuildOptions
 {
   int occupied_threshold{50};
   bool unknown_is_occupied{true};
+  double map_padding_xy{1.0};
 };
 
 class MapModel
@@ -50,6 +51,8 @@ public:
   double interpolatedDistance(double wx, double wy, double off_map_distance) const;
 
 private:
+  bool worldToGridUnbounded(double wx, double wy, double & gx, double & gy) const;
+
   bool ready_{false};
   std::string frame_id_{"map"};
   double resolution_{0.05};
@@ -60,6 +63,9 @@ private:
   double origin_sin_{0.0};
   std::uint32_t width_{0};
   std::uint32_t height_{0};
+  std::uint32_t edt_width_{0};
+  std::uint32_t edt_height_{0};
+  std::uint32_t edt_padding_cells_{0};
   std::vector<std::int8_t> occupancy_;
   cv::Mat edt_meters_;
   int occupied_threshold_{50};

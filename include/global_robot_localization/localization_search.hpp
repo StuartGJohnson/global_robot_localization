@@ -48,6 +48,7 @@ struct SearchOptions
   double sigma_r{0.3};
   double sigma_theta{0.005};
   double alpha_m{1.0};
+  double map_padding_xy{1.0};
   double free_space_weight{0.0};
   double free_space_sample_step{0.15};
   int min_endpoint_count{20};

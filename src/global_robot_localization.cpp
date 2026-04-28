@@ -69,6 +69,7 @@ GlobalRobotLocalization::GlobalRobotLocalization(const rclcpp::NodeOptions & opt
   declare_parameter("sigma_r", 0.03);
   declare_parameter("sigma_theta", 0.005);
   declare_parameter("alpha_m", 1.0);
+  declare_parameter("map_padding_xy", 1.0);
   declare_parameter("free_space_weight", 0.4);
   declare_parameter("free_space_sample_step", 0.2);
   declare_parameter("min_endpoint_count", 80);
@@ -111,6 +112,7 @@ void GlobalRobotLocalization::mapCallback(nav_msgs::msg::OccupancyGrid::SharedPt
   MapBuildOptions map_options;
   map_options.occupied_threshold = options.occupied_threshold;
   map_options.unknown_is_occupied = options.unknown_is_occupied;
+  map_options.map_padding_xy = options.search.map_padding_xy;
 
   MapModel updated_map;
   if (!updated_map.update(*msg, map_options)) {
@@ -276,6 +278,7 @@ GlobalRobotLocalization::RuntimeOptions GlobalRobotLocalization::readRuntimeOpti
   options.search.sigma_r = get_parameter("sigma_r").as_double();
   options.search.sigma_theta = get_parameter("sigma_theta").as_double();
   options.search.alpha_m = get_parameter("alpha_m").as_double();
+  options.search.map_padding_xy = get_parameter("map_padding_xy").as_double();
   options.search.free_space_weight = get_parameter("free_space_weight").as_double();
   options.search.free_space_sample_step = get_parameter("free_space_sample_step").as_double();
   options.search.min_endpoint_count = static_cast<int>(get_parameter("min_endpoint_count").as_int());
