@@ -36,6 +36,7 @@ add_library(${CORE_LIBRARY_TARGET}
   src/localization_search.cpp
   src/map_model.cpp
   src/sim.cpp
+  src/sim_node.cpp
 )
 target_compile_features(${CORE_LIBRARY_TARGET} PUBLIC cxx_std_17)
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC

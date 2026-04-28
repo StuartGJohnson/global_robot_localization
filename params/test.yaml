@@ -1,0 +1,29 @@
+global_robot_localization:
+  ros__parameters:
+    occupied_threshold: 50
+    unknown_is_occupied: true
+    base_frame: "base_link"
+    num_scans: 1
+    scan_collection_timeout_sec: 3.0
+    transform_timeout_sec: 0.2
+    publish_initialpose: true
+    publish_markers: true
+    coarse_xy_step: 0.1
+    coarse_yaw_step_deg: 5.0
+    top_k: 40
+    candidate_min_xy_separation: 0.45
+    candidate_min_yaw_separation_deg: 8.0
+    refine_levels: 4
+    refine_xy_step: 0.15
+    refine_yaw_step_deg: 4.0
+    max_range: 5.5
+    scan_stride: 1
+    off_map_distance: 3.0
+    free_space_weight: 0.4
+    free_space_sample_step: 0.2
+    min_endpoint_count: 80
+    covariance_regularization: 1.0e-2
+    sigma_r: 0.03
+    sigma_theta: 0.005
+    alpha_m: 1.0
+

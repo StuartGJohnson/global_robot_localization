@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace global_robot_localization
@@ -133,6 +134,15 @@ SimulatedLidar simulateLidar(
   const double min_angle = -0.5 * field_of_view;
   const double angle_step = field_of_view / static_cast<double>(beam_count - 1);
   const double ray_step = 0.5 * map.info.resolution;
+  scan.scan.angle_min = static_cast<float>(min_angle);
+  scan.scan.angle_max = static_cast<float>(min_angle + angle_step * static_cast<double>(beam_count - 1));
+  scan.scan.angle_increment = static_cast<float>(angle_step);
+  scan.scan.time_increment = 0.0F;
+  scan.scan.scan_time = 0.0F;
+  scan.scan.range_min = static_cast<float>(ray_step);
+  scan.scan.range_max = static_cast<float>(max_range);
+  scan.scan.ranges.assign(static_cast<std::size_t>(beam_count), std::numeric_limits<float>::infinity());
+  scan.scan.intensities.clear();
 
   for (int i = 0; i < beam_count; ++i) {
     const double beam_angle_base = min_angle + static_cast<double>(i) * angle_step;
@@ -144,6 +154,7 @@ SimulatedLidar simulateLidar(
       const double wx = robot_pose.x + range * cos_a;
       const double wy = robot_pose.y + range * sin_a;
       if (isOccupied(map, wx, wy)) {
+        scan.scan.ranges[static_cast<std::size_t>(i)] = static_cast<float>(range);
         scan.endpoints_base.endpoints.emplace_back(
           range * std::cos(beam_angle_base),
           range * std::sin(beam_angle_base));

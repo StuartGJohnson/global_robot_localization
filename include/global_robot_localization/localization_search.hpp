@@ -27,6 +27,11 @@ inline double normalizeYaw(double yaw)
   return yaw;
 }
 
+inline double yawError(double lhs, double rhs)
+{
+  return std::abs(normalizeYaw(lhs - rhs));
+}
+
 struct SearchOptions
 {
   double coarse_xy_step{0.5};

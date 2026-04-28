@@ -18,11 +18,6 @@ namespace global_robot_localization
 namespace
 {
 
-double yawError(double lhs, double rhs)
-{
-  return std::abs(normalizeYaw(lhs - rhs));
-}
-
 MapModel buildMapModel(const nav_msgs::msg::OccupancyGrid & map)
 {
   MapModel model;
@@ -147,7 +142,11 @@ void writeGnuplotArtifacts(
   }
 
   const std::string command = "gnuplot '" + script_path.string() + "' >/dev/null 2>&1";
-  static_cast<void>(std::system(command.c_str()));
+  // todo: deal with issues here
+  int ret = std::system(command.c_str());
+  if (ret == -1) {
+    std::cout << "system gnuplot command failed!" << std::endl;
+  }
 }
 
 bool containsPoseNear(

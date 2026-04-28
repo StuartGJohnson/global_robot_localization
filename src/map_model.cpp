@@ -5,26 +5,9 @@
 #include <limits>
 
 #include <opencv2/imgproc.hpp>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 
 namespace global_robot_localization
 {
-
-namespace
-{
-
-double yawFromQuaternion(const geometry_msgs::msg::Quaternion & q_msg)
-{
-  tf2::Quaternion q(q_msg.x, q_msg.y, q_msg.z, q_msg.w);
-  double roll = 0.0;
-  double pitch = 0.0;
-  double yaw = 0.0;
-  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-  return yaw;
-}
-
-}  // namespace
 
 bool MapModel::update(const nav_msgs::msg::OccupancyGrid & map, const MapBuildOptions & options)
 {
