@@ -1,7 +1,7 @@
 global_robot_localization:
   ros__parameters:
     occupied_threshold: 50
-    unknown_is_occupied: true
+    unknown_is_occupied: false
     base_frame: "base_link"
     num_scans: 1
     scan_collection_timeout_sec: 3.0

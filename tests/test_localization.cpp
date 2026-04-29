@@ -23,7 +23,7 @@ MapModel buildMapModel(const nav_msgs::msg::OccupancyGrid & map)
   MapModel model;
   MapBuildOptions options;
   options.occupied_threshold = 50;
-  options.unknown_is_occupied = true;
+  options.unknown_is_occupied = false;
   EXPECT_TRUE(model.update(map, options));
   return model;
 }

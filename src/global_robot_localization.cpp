@@ -33,7 +33,7 @@ bool isZeroDuration(const builtin_interfaces::msg::Duration & duration)
 struct GlobalRobotLocalization::RuntimeOptions
 {
   int occupied_threshold{50};
-  bool unknown_is_occupied{true};
+  bool unknown_is_occupied{false};
   std::string base_frame{"base_link"};
   int num_scans{1};
   double scan_collection_timeout_sec{3.0};
@@ -49,7 +49,7 @@ GlobalRobotLocalization::GlobalRobotLocalization(const rclcpp::NodeOptions & opt
   tf_listener_(tf_buffer_, this, true)
 {
   declare_parameter("occupied_threshold", 50);
-  declare_parameter("unknown_is_occupied", true);
+  declare_parameter("unknown_is_occupied", false);
   declare_parameter("base_frame", "base_link");
   declare_parameter("num_scans", 1);
   declare_parameter("max_scan_buffer_size", 100);

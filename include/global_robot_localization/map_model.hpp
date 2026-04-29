@@ -26,7 +26,7 @@ inline double yawFromQuaternion(const geometry_msgs::msg::Quaternion & q_msg)
 struct MapBuildOptions
 {
   int occupied_threshold{50};
-  bool unknown_is_occupied{true};
+  bool unknown_is_occupied{false};
   double map_padding_xy{1.0};
 };
 
@@ -69,7 +69,7 @@ private:
   std::vector<std::int8_t> occupancy_;
   cv::Mat edt_meters_;
   int occupied_threshold_{50};
-  bool unknown_is_occupied_{true};
+  bool unknown_is_occupied_{false};
 };
 
 }  // namespace global_robot_localization
