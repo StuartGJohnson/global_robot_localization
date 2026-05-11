@@ -7,6 +7,10 @@ occupancy map using lidar /scan data.
 
 This package (currently) returns the pose and covariance of the most likely robot pose. A given localization situation may have multiple viable (likely) poses. Future versions will address this better, to some degree. The intention of this (current) package is to accelerate testing and development of other localization solutions (e.g, local ICP solvers). This package also does not account for lidar slew during motion, and so is best suited for a stationary robot (as in initialization).
 
+## Math backgound
+
+[Math Background PDF](https://StuartGJohnson.github.io/global_robot_localization/algo.pdf)
+
 ## Targets
 
 - `global_robot_localization_core`: library target for reusable localization components.
