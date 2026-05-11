@@ -1,7 +1,11 @@
 # global_robot_localization
 
 ROS 2 Humble `ament_cmake` package for one-shot C++ global localization in a static
-occupancy map.
+occupancy map using lidar /scan data. 
+
+## Important note
+
+This package (currently) returns the pose and covariance of the most likely robot pose. A given localization situation may have multiple viable (likely) poses. Future versions will address this better, to some degree. The intention of this (current) package is to accelerate testing and development of other localization solutions (e.g, local ICP solvers). This package also does not account for lidar slew during motion, and so is best suited for a stationary robot (as in initialization).
 
 ## Targets
 
