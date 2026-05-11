@@ -1,0 +1,378 @@
+
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{indentfirst}
+
+\geometry{margin=1in}
+
+\title{Mathematical Background for Global Robot Localization}
+\author{Stuart Johnson and ChatGPT}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document presents the mathematical background for a global localization method for mobile robots operating in a known occupancy map. The method performs global pose estimation using lidar observations and a precomputed Euclidean distance transform (EDT) derived from a reference occupancy grid. A probabilistic observation model is used to derive a negative log likelihood objective function over robot pose. A coarse-to-fine search procedure is employed to identify candidate pose hypotheses, followed by local refinement and covariance estimation via finite-difference Hessian approximation.
+
+The intent of this document is to provide engineering background for the accompanying ROS2 package implementation.
+\end{abstract}
+
+\section{Introduction}
+
+We consider the problem of estimating the planar robot pose
+\begin{equation}
+q = [x, y, \theta]^T
+\end{equation}
+from a set of lidar observations and a known occupancy map.
+
+The method described here is intended primarily as a robust global localization and relocalization tool for ROS2-based mobile robots. The intended use case is:
+\begin{itemize}
+    \item A static occupancy map has previously been generated.
+    \item The robot is stationary during global localization.
+    \item A set of lidar scans are acquired.
+    \item A global search over pose is performed.
+    \item One or more candidate pose hypotheses are returned.
+\end{itemize}
+The implementation is particularly motivated by robot testing when the initial pose (/initialpose) needs to be set. While (currently) it is assumed that the most likely pose is the solution, future work will help the user detect and resolve multiple-solution cases. For example, for the initialization of robot navigation problem, one could use rviz to select the desired solution from the candidates returned by this package.
+
+\section{Notation and Coordinate Frames}
+
+We assume the following coordinate frames:
+\begin{itemize}
+    \item $\mathcal{F}_m$: map frame
+    \item $\mathcal{F}_b$: robot base frame
+    \item $\mathcal{F}_l$: lidar frame
+\end{itemize}
+A static transform between the robot base and lidar frame is assumed known. Let the robot pose in the map frame be:
+\begin{equation}
+q = [x, y, \theta]^T
+\end{equation}
+A lidar point observed in the lidar frame is denoted:
+\begin{equation}
+p_i^{(l)} = [x_i^{(l)}, y_i^{(l)}]^T
+\end{equation}
+After application of the base-to-lidar transform and robot pose transform, the point in the map frame is:
+\begin{equation}
+r_i(q) = T(q) \, p_i
+\end{equation}
+where $T(q)$ denotes the rigid planar transformation parameterized by pose $q$.
+
+\section{Reference Occupancy Map and Distance Transform}
+
+We assume a known occupancy map represented as a 2D occupancy grid. Occupied cells are used to construct a Euclidean distance transform (EDT):
+\begin{equation}
+D_m(r)
+\end{equation}
+which returns the Euclidean distance from point $r$ to the nearest occupied cell in the map. The EDT is precomputed from the reference occupancy map. The EDT representation is advantageous because:
+\begin{itemize}
+    \item It provides a smooth cost function.
+    \item It avoids explicit point correspondences.
+    \item Nearest-obstacle lookup is computationally efficient.
+\end{itemize}
+Unknown occupancy regions are not treated as occupied. Furthermore, maps are padded by empty (or unknown) cells to prevent sharp EDT functions due to lidar reflection points at the edge of the occupancy map.
+
+\section{Observation Model}
+
+Consider a lidar endpoint transformed into the map frame:
+\begin{equation}
+r_i(q)
+\end{equation}
+The distance to the nearest occupied cell is:
+\begin{equation}
+d_i(q) = D_m(r_i(q))
+\end{equation}
+A common likelihood-field approximation models the probability of a lidar observation as:
+\begin{equation}
+p(z_i \mid q, m)
+\propto
+\exp\left(-\frac{d_i(q)^2}{2 \sigma_i^2}\right)
+\end{equation}
+where:
+\begin{itemize}
+    \item $m$ denotes the map
+    \item $z_i$ denotes the $i$th lidar observation
+    \item $\sigma_i^2$ denotes the effective observation variance
+\end{itemize}
+Assuming conditional independence between observations:
+\begin{equation}
+p(z \mid q,m)
+\propto
+\prod_i
+\exp\left(-\frac{d_i(q)^2}{2\sigma_i^2}\right)
+\end{equation}
+Taking the negative log likelihood yields:
+\begin{equation}
+J(q)
+=
+\frac{1}{2}
+\sum_i
+\frac{d_i(q)^2}{\sigma_i^2}
+\end{equation}
+up to additive constants independent of pose.
+\section{Effective Observation Variance}
+
+The effective observation variance combines multiple independent uncertainty sources. The lidar endpoint uncertainty is modeled approximately as:
+\begin{equation}
+\sigma_{\text{lidar},i}^2
+=
+\sigma_r^2
++
+(r_i \sigma_\theta)^2
+\end{equation}
+where:
+\begin{itemize}
+    \item $\sigma_r$ is radial range uncertainty (in meters)
+    \item $\sigma_\theta$ is angular uncertainty (in radians)
+    \item $r_i$ is the measured lidar range
+\end{itemize}
+Map uncertainty is represented by:
+\begin{equation}
+\sigma_{\text{map}}^2
+\end{equation}
+Assuming independent Gaussian uncertainties:
+\begin{equation}
+\sigma_i^2
+=
+\sigma_{\text{lidar},i}^2
++
+\sigma_{\text{map}}^2
+\end{equation}
+The resulting variance is treated as a fixed per-observation weighting during optimization.
+
+\subsection{Approximations}
+
+The model above is intentionally simplified. Several effects are neglected:
+\begin{itemize}
+    \item Anisotropic lidar endpoint covariance
+    \item Incidence-angle dependent uncertainty
+    \item Dynamic scan distortion due to robot motion
+    \item Non-Gaussian scattering effects
+    \item Spatial correlation between observations
+    \item Pose-dependent covariance terms
+\end{itemize}
+The implementation assumes the robot is stationary during global localization, thereby avoiding scan deskewing and time-varying motion compensation.
+
+\section{Coarse-to-Fine Global Search}
+
+The objective function $J(q)$ is generally non-convex and may contain multiple local minima. A coarse-to-fine search strategy is therefore employed.
+
+\subsection{Coarse Search}
+
+A coarse search over $(x,y,\theta)$ is performed over a bounded region of the map. The search grid is discretized:
+\begin{equation}
+q_{ijk} = [x_i, y_j, \theta_k]^T
+\end{equation}
+The objective function is evaluated at each candidate pose. Several further computational optimizations are possible:
+\begin{itemize}
+    \item Lidar point decimation
+    \item Parallel evaluation
+    \item Multi-resolution map representations
+\end{itemize}
+The best candidate hypotheses are retained for refinement.
+
+\subsection{Fine Search}
+
+A local refinement stage is performed around the best coarse candidate poses. In the current implementation, a grid search over selectable levels of refinement (by a factor of 2 at each refinement) is utilized.
+
+\section{Covariance Estimation}
+
+Near the optimum pose $q^*$, the negative log likelihood objective may be approximated locally as quadratic:
+\begin{equation}
+J(q)
+\approx
+J(q^*)
++
+\frac{1}{2}
+(q-q^*)^T H (q-q^*)
+\end{equation}
+where:
+\begin{equation}
+H
+=
+\nabla^2 J(q^*)
+\end{equation}
+is the Hessian matrix.
+
+The pose covariance is approximated as \cite{wikipedia_observed_information}:
+\begin{equation}
+\Sigma_q
+\approx
+H^{-1}
+\end{equation}
+provided the Hessian is positive definite. 
+
+The Hessian is estimated via finite-difference. Let the finite-difference step sizes be:
+\begin{equation}
+h_x,\quad h_y,\quad h_\theta
+\end{equation}
+Typical values are:
+\begin{itemize}
+    \item $h_x$ and $h_y$ on the order of one to two map cells
+    \item $h_\theta$ on the order of $0.5^\circ$ to $2^\circ$
+\end{itemize}
+Let the optimal pose estimate be:
+\begin{equation}
+q^* = [x^*, y^*, \theta^*]^T
+\end{equation}
+and define:
+\begin{equation}
+J_0 = J(x^*, y^*, \theta^*)
+\end{equation}
+The diagonal second derivatives are approximated using centered
+finite differences.
+\paragraph{Diagonal Terms}
+\begin{equation}
+J_{xx}
+\approx
+\frac{
+J(x^*+h_x,y^*,\theta^*)
+-
+2J_0
++
+J(x^*-h_x,y^*,\theta^*)
+}{
+h_x^2
+}
+\end{equation}
+\begin{equation}
+J_{yy}
+\approx
+\frac{
+J(x^*,y^*+h_y,\theta^*)
+-
+2J_0
++
+J(x^*,y^*-h_y,\theta^*)
+}{
+h_y^2
+}
+\end{equation}
+\begin{equation}
+J_{\theta\theta}
+\approx
+\frac{
+J(x^*,y^*,\theta^*+h_\theta)
+-
+2J_0
++
+J(x^*,y^*,\theta^*-h_\theta)
+}{
+h_\theta^2
+}
+\end{equation}
+\paragraph{Mixed Terms}
+The mixed second derivatives are approximated using centered
+four-point finite differences.
+\begin{equation}
+J_{xy}
+\approx
+\frac{
+J(x^*+h_x,y^*+h_y,\theta^*)
+-
+J(x^*+h_x,y^*-h_y,\theta^*)
+-
+J(x^*-h_x,y^*+h_y,\theta^*)
++
+J(x^*-h_x,y^*-h_y,\theta^*)
+}{
+4 h_x h_y
+}
+\end{equation}
+\begin{equation}
+J_{x\theta}
+\approx
+\frac{
+J(x^*+h_x,y^*,\theta^*+h_\theta)
+-
+J(x^*+h_x,y^*,\theta^*-h_\theta)
+-
+J(x^*-h_x,y^*,\theta^*+h_\theta)
++
+J(x^*-h_x,y^*,\theta^*-h_\theta)
+}{
+4 h_x h_\theta
+}
+\end{equation}
+\begin{equation}
+J_{y\theta}
+\approx
+\frac{
+J(x^*,y^*+h_y,\theta^*+h_\theta)
+-
+J(x^*,y^*+h_y,\theta^*-h_\theta)
+-
+J(x^*,y^*-h_y,\theta^*+h_\theta)
++
+J(x^*,y^*-h_y,\theta^*-h_\theta)
+}{
+4 h_y h_\theta
+}
+\end{equation}
+The Hessian matrix is then assembled as:
+\begin{equation}
+H =
+\begin{bmatrix}
+J_{xx} & J_{xy} & J_{x\theta} \\
+J_{xy} & J_{yy} & J_{y\theta} \\
+J_{x\theta} & J_{y\theta} & J_{\theta\theta}
+\end{bmatrix}
+\end{equation}
+The resulting covariance estimate is mapped into a ROS2
+\texttt{geometry\_msgs/PoseWithCovarianceStamped} message.
+
+\section{Computational Considerations}
+
+The dominant computational costs are:
+
+\begin{itemize}
+    \item EDT computation
+    \item Objective evaluation over candidate poses
+    \item Local refinement
+\end{itemize}
+
+The EDT is precomputed once from the reference occupancy map. The global search stage is highly parallelizable. The method scales approximately linearly with:
+\begin{itemize}
+    \item number of candidate poses
+    \item number of lidar points
+    \item angular search resolution
+\end{itemize}
+
+\section{Future Work}
+
+Possible future extensions include:
+\begin{itemize}
+    \item 3D lidar support
+    \item GPU acceleration
+    \item map consistency metrics (lost robot!)
+\end{itemize}
+
+\section{References}
+
+\begin{thebibliography}{99}
+
+\bibitem{thrun2005}
+S. Thrun, W. Burgard, and D. Fox,
+\emph{Probabilistic Robotics},
+MIT Press, 2005.
+
+\bibitem{wikipedia_observed_information}
+Wikipedia contributors,
+``Observed Information,''
+Wikipedia, The Free Encyclopedia.
+\url{https://en.wikipedia.org/wiki/Observed_information}
+Accessed: May 2026.
+
+\end{thebibliography}
+
+\end{document}
+```
