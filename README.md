@@ -148,3 +148,10 @@ with transient-local QoS and publishes simulated scans on `/scan`.
   when computing per-endpoint variance.
 - `alpha_m` (`unitless`, default `1.0`): map-resolution scale used by shared
   search options.
+
+## AI Assistance
+
+Development of this package made use of OpenAI ChatGPT
+(GPT-5.4/5.5) and Codex tools for code generation, documentation drafting, and technical discussion.
+AI-generated code has been reviewed, modified and extended (code in tests/ is not AI-generated) by the non-AI author.
+
