@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Global robot localization components for ROS 2.</description>
   <maintainer email="sjohnson@example.com">sjohnson</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
